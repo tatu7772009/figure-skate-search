@@ -7,9 +7,31 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3006;
 
-app.use(cors());
+// CORS設定を強化
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.static('.'));
+
+// ヘルスチェックエンドポイント
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// デバッグ用エンドポイント
+app.get('/debug', (req, res) => {
+    res.json({
+        environment: process.env.NODE_ENV,
+        port: PORT,
+        competitions_count: competitions.length,
+        timestamp: new Date().toISOString()
+    });
+});
 
 // 修正された競技会リスト（実際のURL構造に基づく）
 const competitions = [
@@ -561,9 +583,16 @@ async function comprehensiveJSFSearch(playerName) {
                 console.log(`  ${category.name}: ${url}`);
                 
                 const response = await axios.get(url, {
-                    timeout: 15000,
+                    timeout: 10000, // タイムアウト短縮
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+                        'Cache-Control': 'no-cache'
+                    },
+                    maxRedirects: 5,
+                    validateStatus: function (status) {
+                        return status >= 200 && status < 300;
                     }
                 });
 
@@ -1161,13 +1190,22 @@ function normalizePlayerName(name) {
         .trim();
 }
 
-// API エンドポイント
+// API エンドポイント（強化版）
 app.get('/api/search/:playerName', async (req, res) => {
     try {
         const playerName = decodeURIComponent(req.params.playerName);
         console.log(`\n=== API検索要求: ${playerName} ===`);
+        console.log(`Environment: ${process.env.NODE_ENV}`);
+        console.log(`Timestamp: ${new Date().toISOString()}`);
         
-        const results = await comprehensiveJSFSearch(playerName);
+        // リクエストタイムアウト設定（Vercel制限対応）
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout')), 25000); // 25秒でタイムアウト
+        });
+        
+        const searchPromise = comprehensiveJSFSearch(playerName);
+        
+        const results = await Promise.race([searchPromise, timeoutPromise]);
         
         if (results.length > 0) {
             console.log(`\n=== 最終結果: ${results.length}件 ===`);
@@ -1177,14 +1215,30 @@ app.get('/api/search/:playerName', async (req, res) => {
             
             // 新しい順にソート
             results.sort((a, b) => b.year.localeCompare(a.year));
-            res.json({ success: true, data: results });
+            res.json({ 
+                success: true, 
+                data: results,
+                timestamp: new Date().toISOString(),
+                search_count: results.length
+            });
         } else {
             console.log(`No results found for ${playerName}`);
-            res.json({ success: false, message: 'JSFサイトでデータが見つかりませんでした' });
+            res.json({ 
+                success: false, 
+                message: 'JSFサイトでデータが見つかりませんでした',
+                timestamp: new Date().toISOString()
+            });
         }
     } catch (error) {
         console.error('Search error:', error);
-        res.status(500).json({ success: false, message: 'サーバーエラーが発生しました' });
+        res.status(500).json({ 
+            success: false, 
+            message: error.message.includes('timeout') ? 
+                'サーバー処理がタイムアウトしました。しばらく待ってから再度お試しください。' : 
+                'サーバーエラーが発生しました',
+            error_type: error.message.includes('timeout') ? 'timeout' : 'server_error',
+            timestamp: new Date().toISOString()
+        });
     }
 });
 
