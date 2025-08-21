@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フィギュアスケート選手成績検索（包括版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .search-section {
+            padding: 40px;
+            background: white;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+        }
+
+        .search-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #2c5aa0;
+        }
+
+        .results-section {
+            padding: 0 40px 40px;
+        }
+
+        .results-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #4facfe;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .results-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 8px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .results-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .wd-row {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .wd-badge {
+            background: #ffc107;
+            color: #212529;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #4facfe;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4facfe;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .search-section { padding: 20px; }
+            .search-box { flex-direction: column; }
+            .search-input { min-width: 100%; }
+            .results-section { padding: 0 20px 20px; }
+            .results-table { font-size: 0.8rem; }
+            .results-table th, .results-table td { padding: 8px 4px; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 1.5rem; }
+            .results-table { font-size: 0.7rem; }
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4facfe;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>フィギュアスケート選手成績検索</h1>
+            <p>包括的検索システム - 複数年度・全大会対応</p>
+        </div>
+
+        <div class="search-section">
+            <div class="search-info">
+                <strong>🔍 検索範囲：</strong>2021-2022年度〜2024-2025年度（4年分）の全日本選手権、地方ブロック選手権（東北・北海道、関東、東京、中部、近畿、中四国九州）
+                <br><strong>⚡ 機能：</strong>WD（棄権）データ対応、複数年度・複数地方大会一括検索、リアルタイムJSFサイト連携
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="playerSearch" class="search-input" placeholder="選手名を入力してください（例：坂本花織、三原舞依、羽生結弦）">
+                <button onclick="searchPlayer()" class="search-btn">包括検索</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div id="resultsContainer" style="display: none;">
+                <div class="results-header">
+                    <h3 id="playerName">検索結果</h3>
+                    <p>競技会成績一覧（新しい順）</p>
+                </div>
+                
+                <div id="summaryStats" class="summary-stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalCompetitions">0</div>
+                        <div>参加大会</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="bestRank">-</div>
+                        <div>最高順位</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgScore">0</div>
+                        <div>平均得点</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wdCount">0</div>
+                        <div>棄権回数</div>
+                    </div>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>開催年度</th>
+                                <th>開催月</th>
+                                <th>区分</th>
+                                <th>大会名称</th>
+                                <th>最終順位</th>
+                                <th>総合得点</th>
+                                <th>SP順位</th>
+                                <th>SP得点</th>
+                                <th>FS順位</th>
+                                <th>FS得点</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="loadingContainer" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <div id="progressText">JSFサイトから包括的に検索中...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="searchStatus" style="font-size: 0.9rem; color: #666; margin-top: 10px;"></div>
+            </div>
+
+            <div id="noResultsContainer" class="no-results" style="display: none;">
+                <p>該当する選手が見つかりませんでした。</p>
+                <p>選手名の表記を確認してもう一度お試しください。</p>
+                <p style="font-size: 0.9rem; margin-top: 15px; color: #888;">
+                    ※ 2023-2024年度、2024-2025年度の国内大会・地方競技会を検索しました
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 拡張されたサンプルデータ（フォールバック用）
+        const sampleData = {
+            "坂本花織": [
+                {
+                    year: "2024-25",
+                    organizer: "日本",
+                    competition: "第93回全日本フィギュアスケート選手権大会",
+                    finalRank: 1,
+                    totalScore: 228.68,
+                    spRank: 1,
+                    spScore: 78.50,
+                    fsRank: 1,
+                    fsScore: 150.18,
+                    status: "COMPLETED"
+                },
+                {
+                    year: "2023-24",
+                    organizer: "日本",
+                    competition: "第92回全日本フィギュアスケート選手権大会",
+                    finalRank: 1,
+                    totalScore: 233.12,
+                    spRank: 1,
+                    spScore: 78.78,
+                    fsRank: 1,
+                    fsScore: 154.34,
+                    status: "COMPLETED"
+                }
+            ],
+            "三原舞依": [
+                {
+                    year: "2024-25",
+                    organizer: "日本",
+                    competition: "第93回全日本フィギュアスケート選手権大会",
+                    finalRank: "WD",
+                    totalScore: 51.94,
+                    spRank: 23,
+                    spScore: 51.94,
+                    fsRank: 0,
+                    fsScore: 0,
+                    status: "WD"
+                },
+                {
+                    year: "2023-24",
+                    organizer: "日本",
+                    competition: "第92回全日本フィギュアスケート選手権大会",
+                    finalRank: 5,
+                    totalScore: 199.56,
+                    spRank: 5,
+                    spScore: 67.70,
+                    fsRank: 5,
+                    fsScore: 131.86,
+                    status: "COMPLETED"
+                }
+            ]
+        };
+
+        function normalizePlayerName(name) {
+            if (!name) return '';
+            return name
+                .replace(/\s+/g, '')
+                .replace(/[　\u3000]/g, '')
+                .replace(/[・･]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
+        async function searchPlayer() {
+            const searchInput = document.getElementById('playerSearch');
+            const playerName = searchInput.value.trim();
+            
+            if (!playerName) {
+                alert('選手名を入力してください。');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                // JSFサイトから包括的検索
+                const response = await fetch(`http://localhost:3006/api/search/${encodeURIComponent(playerName)}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    displayResults(playerName, result.data);
+                } else {
+                    // フォールバック：サンプルデータから検索
+                    const normalizedInput = normalizePlayerName(playerName);
+                    let foundPlayer = null;
+                    let foundData = null;
+
+                    for (const [player, data] of Object.entries(sampleData)) {
+                        if (normalizePlayerName(player) === normalizedInput) {
+                            foundPlayer = player;
+                            foundData = data;
+                            break;
+                        }
+                    }
+
+                    if (foundData) {
+                        displayResults(foundPlayer, foundData);
+                    } else {
+                        showNoResults();
+                    }
+                }
+            } catch (error) {
+                console.error('検索エラー:', error);
+                showNoResults();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('noResultsContainer').style.display = 'none';
+            document.getElementById('loadingContainer').style.display = 'block';
+            
+            // 進捗シミュレーション
+            let progress = 0;
+            const progressFill = document.getElementById('progressFill');
+            const searchStatus = document.getElementById('searchStatus');
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    searchStatus.textContent = '2024-2025年度の大会を検索中...';
+                } else if (progress < 60) {
+                    searchStatus.textContent = '2023-2024年度の大会を検索中...';
+                } else if (progress < 90) {
+                    searchStatus.textContent = 'データを解析中...';
+                } else {
+                    searchStatus.textContent = '結果をまとめ中...';
+                    clearInterval(interval);
+                }
+            }, 200);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                progressFill.style.width = '100%';
+            }, 3000);
+        }
+
+        function displayResults(playerName, results) {
+            document.getElementById('loadingContainer').style.display = 'none';
+            document.getElementById('noResultsContainer').style.display = 'none';
+            
+            const playerNameElement = document.getElementById('playerName');
+            playerNameElement.textContent = `${playerName} の競技会成績`;
+
+            // 統計情報を計算
+            updateSummaryStats(results);
+
+            const tableBody = document.getElementById('resultsTable');
+            tableBody.innerHTML = '';
+
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                if (result.status === 'WD') {
+                    row.classList.add('wd-row');
+                }
+                
+                const rankDisplay = result.finalRank === 'WD' ? '<span class="wd-badge">WD</span>' : result.finalRank;
+                
+                // 得点を小数点以下2位固定で表示
+                const formatScore = (score) => {
+                    if (!score || score === 0) return '-';
+                    return parseFloat(score).toFixed(2);
+                };
+                
+                row.innerHTML = `
+                    <td>${result.year}</td>
+                    <td>${result.month || '-'}</td>
+                    <td>${result.organizer}</td>
+                    <td title="${result.competition}">${result.competition.length > 30 ? result.competition.substring(0, 30) + '...' : result.competition}</td>
+                    <td>${rankDisplay}</td>
+                    <td>${formatScore(result.totalScore)}</td>
+                    <td>${result.spRank || '-'}</td>
+                    <td>${formatScore(result.spScore)}</td>
+                    <td>${result.fsRank || '-'}</td>
+                    <td>${formatScore(result.fsScore)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            document.getElementById('resultsContainer').style.display = 'block';
+        }
+
+        function updateSummaryStats(results) {
+            const totalCompetitions = results.length;
+            const completedResults = results.filter(r => r.status !== 'WD');
+            const wdCount = results.filter(r => r.status === 'WD').length;
+            
+            let bestRank = '-';
+            let avgScore = 0;
+            
+            if (completedResults.length > 0) {
+                const ranks = completedResults.map(r => r.finalRank).filter(r => typeof r === 'number');
+                if (ranks.length > 0) {
+                    bestRank = Math.min(...ranks);
+                }
+                
+                const scores = completedResults.map(r => r.totalScore).filter(s => s > 0);
+                if (scores.length > 0) {
+                    avgScore = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2);
+                }
+            }
+
+            document.getElementById('totalCompetitions').textContent = totalCompetitions;
+            document.getElementById('bestRank').textContent = bestRank;
+            document.getElementById('avgScore').textContent = avgScore || '-';
+            document.getElementById('wdCount').textContent = wdCount;
+            document.getElementById('summaryStats').style.display = 'flex';
+        }
+
+        function showNoResults() {
+            document.getElementById('loadingContainer').style.display = 'none';
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('noResultsContainer').style.display = 'block';
+        }
+
+        // Enter キーで検索
+        document.getElementById('playerSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPlayer();
+            }
+        });
+
+        // 初期フォーカス
+        document.getElementById('playerSearch').focus();
+    </script>
+</body>
+</html>

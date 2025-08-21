@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "fixed_server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/fixed_server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/fixed_server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

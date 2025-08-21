@@ -1,0 +1,28 @@
+{
+  "name": "figure-skate-results-app",
+  "version": "1.0.0",
+  "description": "フィギュアスケート選手成績検索アプリ",
+  "main": "fixed_server.js",
+  "scripts": {
+    "start": "node fixed_server.js",
+    "build": "echo 'Build complete'",
+    "dev": "nodemon fixed_server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "cheerio": "^1.0.0-rc.12",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "figure-skating",
+    "sports",
+    "scraping",
+    "node.js"
+  ],
+  "author": "",
+  "license": "ISC"
+}
