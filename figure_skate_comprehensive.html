@@ -403,8 +403,12 @@
             showLoading();
 
             try {
+                // API エンドポイントを環境に応じて決定
+                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiBase = isLocalhost ? 'http://localhost:3006' : '';
+                
                 // JSFサイトから包括的検索
-                const response = await fetch(`http://localhost:3006/api/search/${encodeURIComponent(playerName)}`);
+                const response = await fetch(`${apiBase}/api/search/${encodeURIComponent(playerName)}`);
                 const result = await response.json();
 
                 if (result.success && result.data.length > 0) {
